@@ -5,7 +5,7 @@ Created on Fri Jul  7 09:38:29 2023
 @author: thepe
 """
 
-from dash import Dash, html, dcc
+from dash import Dash, html, dcc, Input, Output, callback
 
 import pandas as pd
 import plotly.express as px
@@ -15,7 +15,7 @@ url = 'https://raw.githubusercontent.com/chriszapp/datasets/main/books.csv'
 df = pd.read_csv(url, nrows = 3000)
 
 df2 = df.groupby(by = 'authors').mean().reset_index()
-fig = px.bar(df2, x="authors", y="  num_pages")
+fig = px.scatter(df2, x="authors", y="  num_pages")
 fig.update_layout(
     title=dict(text="Nombre moyen de pages par auteur", font=dict(size=30), automargin=True, yref='paper'),
     font_color='#119DFF',
@@ -30,13 +30,13 @@ fig.update_layout(
 app = Dash(__name__)
 server = app.server
 
-app.layout = html.Div([
+app.layout = html.Div([html.Div(
     html.H4(children='Books'),
     dcc.Graph(
         id='example-graph-2',
         figure=fig
-    ),
-    
+    ),id ='output-container'),
+                           
     dcc.Markdown('''                   
                
                  
@@ -45,7 +45,8 @@ app.layout = html.Div([
 
 '''), 
     # choix auteur
-    dcc.Dropdown(list(df['authors'].unique())),
+    dcc.Dropdown(list(df['authors'].unique()),
+                 id = 'drop-authors'),
    
     dcc.Markdown('''
                    
@@ -56,8 +57,25 @@ Choix de la langue :
 
 '''), 
     # choix langue
-    dcc.RadioItems(list(df['language_code'].unique()), 'eng')
+    dcc.RadioItems(list(df['language_code'].unique()), 'eng',
+                   id = 'radio-lang')
 ])
+                 
+                 
+@callback(
+    Output('dd-output-container', 'children'),
+    [Input('drop-authors', 'value'),
+    Input('radio-lang', 'value')]
+)
+
+def update_graph(auteur, langue):
+    df3 = df2[(df2['authors'] == auteur) & (df2['language_code'] == langue)]
+    fig = px.scatter(df3, x = "title", y = "  num_pages")
+    return fig
+
+
+
+                 
 
 if __name__ == '__main__':
     app.run(debug=True)
